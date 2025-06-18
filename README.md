@@ -10,3 +10,5 @@ php artisan:migrate
 
 4.Start the development sever:
 php artisan serve
+
+5.You can access the Postman API collection by using the file "TESTING.postman_collection.json"
