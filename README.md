@@ -8,7 +8,7 @@ git clone https://github.com/Vishnuk1030/Sports_venue_Booking.git
 3.Migrate the Database:
 php artisan:migrate
 
-4.Seed the database
+4.Seed the database:
 php artisan db:seed --class=VenueSeeder
 
 5.Start the development server:
