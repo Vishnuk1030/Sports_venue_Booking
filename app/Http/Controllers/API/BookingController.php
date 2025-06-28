@@ -9,10 +9,11 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Helpers\BookingHelper;
+use App\Utils\ErrorResponse;
+use App\Utils\SuccessResponse;
 
 class BookingController extends Controller
 {
-
     public function reserve(Request $request)
     {
         $request->validate([
@@ -31,25 +32,23 @@ class BookingController extends Controller
             $startTime = Carbon::createFromFormat('h:i A', $request->start_time)->format('H:i');
             $endTime = Carbon::createFromFormat('h:i A', $request->end_time)->format('H:i');
 
+
             $venue = Venue::find($venueId);
+
             [$open, $close] = explode(' - ', $venue->working_hours);
+
             $openTime = Carbon::createFromFormat('h:i A', $open)->format('H:i');
             $closeTime = Carbon::createFromFormat('h:i A', $close)->format('H:i');
 
+
             if ($startTime < $openTime || $endTime > $closeTime) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Booking time must be within venue working hours: ' . $venue->working_hours
-                ], 422);
+                return ErrorResponse::error('Booking time must be within venue working hours: ' . $venue->working_hours, 422);
             }
 
             $overlap = BookingHelper::CheckOverlap($venueId, $bookingDate, $startTime, $endTime);
 
             if ($overlap) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Time slot overlaps with existing booking'
-                ], 409);
+                return ErrorResponse::error('Time slot overlaps with existing booking', 409);
             }
 
             $booking = Booking::create([
@@ -60,16 +59,9 @@ class BookingController extends Controller
                 'end_time' => $request->end_time,
             ]);
 
-            return response()->json([
-                'status' => true,
-                'message' => 'Booking successful',
-                'booking' => $booking
-            ], 201);
+            return SuccessResponse::success('Booking successful', $booking, 201);
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage()
-            ], 500);
+            return ErrorResponse::error($e->getMessage());
         }
     }
 
@@ -83,10 +75,7 @@ class BookingController extends Controller
                 ->get();
 
             if ($venueData->isEmpty()) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'No venues list found'
-                ], 404);
+                return ErrorResponse::error('No venues list found', 404);
             }
 
             $maxCount = $venueData->max('booking_count');
@@ -114,16 +103,9 @@ class BookingController extends Controller
                 }
             }
 
-            return response()->json([
-                'status' => true,
-                'message' => 'Venue details fetched successfully',
-                'venues' => $venueDetails
-            ], 200);
+            return SuccessResponse::Success('Venue details fetched successfully', $venueDetails);
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage()
-            ], 500);
+            return ErrorResponse::error($e->getMessage());
         }
     }
 
@@ -143,7 +125,7 @@ class BookingController extends Controller
                 ]);
 
             if ($bookingCounts->isEmpty()) {
-                return response()->json(['status' => false, 'message' => 'No venues found as per the category'], 404);
+                return ErrorResponse::error('No venues found as per the category', 404);
             }
 
 
@@ -171,17 +153,9 @@ class BookingController extends Controller
                     ];
                 }
             }
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Venue performance categorized successfully',
-                'venues' => $venueDetails
-            ], 200);
+            return SuccessResponse::success('Venue performance categorized successfully', $venueDetails);
         } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => $e->getMessage()
-            ], 500);
+            return ErrorResponse::error($e->getMessage());
         }
     }
 }
