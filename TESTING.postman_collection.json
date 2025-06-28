@@ -1,0 +1,105 @@
+{
+	"info": {
+		"_postman_id": "1452fa63-48dc-4ea7-8168-79d88fabf5c7",
+		"name": "TESTING",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "31721173",
+		"_collection_link": "https://bold-crater-817628.postman.co/workspace/Avanexa-PHP~19698159-c9c7-4bb3-9719-ee00e36ed12b/collection/31721173-1452fa63-48dc-4ea7-8168-79d88fabf5c7?action=share&source=collection_link&creator=31721173"
+	},
+	"item": [
+		{
+			"name": "Booking API",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"user_id\":2,\r\n    \"venue_id\":2,\r\n    \"booking_date\":\"2025-06-18\",\r\n    \"start_time\":\"01:00 PM\",\r\n    \"end_time\":\"02:00 PM\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/bookings/reserve",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"bookings",
+						"reserve"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Listing Venues",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/list_venues",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"list_venues"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Categorize Venues",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/categorize_venues",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"categorize_venues"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
