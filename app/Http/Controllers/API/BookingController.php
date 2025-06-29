@@ -69,8 +69,8 @@ class BookingController extends Controller
     public function list_venues()
     {
         try {
-            $venueData = Booking::select('venue_id')
-                ->selectRaw('COUNT(*) as booking_count')
+            $venueData = Booking::with('venue')
+                ->select('venue_id', DB::raw('COUNT(*) as booking_count'))
                 ->groupBy('venue_id')
                 ->get();
 
@@ -81,33 +81,23 @@ class BookingController extends Controller
             $maxCount = $venueData->max('booking_count');
             $minCount = $venueData->min('booking_count');
 
-            $venueDetails = [];
+            $venueDetails = $venueData->map(function ($booking) use ($maxCount, $minCount) {
+                return [
+                    'venue_id' => $booking->venue->id,
+                    'venue_name' => $booking->venue->venue_name,
+                    'booking_count' => $booking->booking_count,
+                    'highlight' => $booking->booking_count == $maxCount
+                        ? 'highest'
+                        : ($booking->booking_count == $minCount ? 'lowest' : null)
+                ];
+            });
 
-            foreach ($venueData as $data) {
-                $venue = Venue::find($data->venue_id);
-
-                if ($venue) {
-                    $highlight = null;
-                    if ($data->booking_count == $maxCount) {
-                        $highlight = 'highest';
-                    } elseif ($data->booking_count == $minCount) {
-                        $highlight = 'lowest';
-                    }
-
-                    $venueDetails[] = [
-                        'venue_id' => $venue->id,
-                        'venue_name' => $venue->venue_name,
-                        'booking_count' => $data->booking_count,
-                        'highlight' => $highlight
-                    ];
-                }
-            }
-
-            return SuccessResponse::Success('Venue details fetched successfully', $venueDetails);
+            return SuccessResponse::success('Venue details fetched successfully', $venueDetails);
         } catch (\Exception $e) {
             return ErrorResponse::error($e->getMessage());
         }
     }
+
 
 
     public function categorize_venues()
@@ -116,43 +106,38 @@ class BookingController extends Controller
             $currentMonth = now()->month;
             $currentYear = now()->year;
 
-            $bookingCounts = Booking::whereYear('booking_date', $currentYear)
+            $bookingCounts = Booking::with('venue')
+                ->whereYear('booking_date', $currentYear)
                 ->whereMonth('booking_date', $currentMonth)
+                ->select('venue_id', DB::raw('COUNT(*) as booking_count'))
                 ->groupBy('venue_id')
-                ->get([
-                    'venue_id',
-                    DB::raw('COUNT(*) as booking_count')
-                ]);
+                ->get();
 
             if ($bookingCounts->isEmpty()) {
                 return ErrorResponse::error('No venues found as per the category', 404);
             }
 
+            $venueDetails = $bookingCounts->map(function ($booking) {
+                $count = $booking->booking_count;
 
-            $venues = Venue::whereIn('id', $bookingCounts->pluck('venue_id'))->get()->keyBy('id');
-
-            $venueDetails = [];
-
-            foreach ($bookingCounts as $bc) {
-                $category = 'D';
-
-                if ($bc->booking_count > 15) {
+                if ($count > 15) {
                     $category = 'A';
-                } elseif ($bc->booking_count >= 10) {
+                } elseif ($count >= 10) {
                     $category = 'B';
-                } elseif ($bc->booking_count >= 5) {
+                } elseif ($count >= 5) {
                     $category = 'C';
+                } else {
+                    $category = 'D';
                 }
 
-                if (isset($venues[$bc->venue_id])) {
-                    $venueDetails[] = [
-                        'venue_id' => $bc->venue_id,
-                        'venue_name' => $venues[$bc->venue_id]->venue_name,
-                        'booking_count' => $bc->booking_count,
-                        'category' => $category
-                    ];
-                }
-            }
+                return [
+                    'venue_id' => $booking->venue_id,
+                    'venue_name' => $booking->venue->venue_name ?? 'N/A',
+                    'booking_count' => $count,
+                    'category' => $category
+                ];
+            });
+
             return SuccessResponse::success('Venue performance categorized successfully', $venueDetails);
         } catch (\Exception $e) {
             return ErrorResponse::error($e->getMessage());
