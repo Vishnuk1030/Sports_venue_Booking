@@ -69,9 +69,10 @@ class BookingController extends Controller
     public function list_venues()
     {
         try {
-            $venueData = Booking::with('venue')
-                ->select('venue_id', DB::raw('COUNT(*) as booking_count'))
-                ->groupBy('venue_id')
+            $venueData = DB::table('venues as Vn')
+                ->leftJoin('bookings as Bk', 'Vn.id', '=', 'Bk.venue_id')
+                ->select('Vn.id as venue_id', 'Vn.venue_name', DB::raw('COUNT(Bk.id) as booking_count'))
+                ->groupBy('Vn.id', 'Vn.venue_name')
                 ->get();
 
             if ($venueData->isEmpty()) {
@@ -81,14 +82,12 @@ class BookingController extends Controller
             $maxCount = $venueData->max('booking_count');
             $minCount = $venueData->min('booking_count');
 
-            $venueDetails = $venueData->map(function ($booking) use ($maxCount, $minCount) {
+            $venueDetails = $venueData->map(function ($venue) use ($maxCount, $minCount) {
                 return [
-                    'venue_id' => $booking->venue->id,
-                    'venue_name' => $booking->venue->venue_name,
-                    'booking_count' => $booking->booking_count,
-                    'highlight' => $booking->booking_count == $maxCount
-                        ? 'highest'
-                        : ($booking->booking_count == $minCount ? 'lowest' : null)
+                    'venue_id' => $venue->venue_id,
+                    'venue_name' => $venue->venue_name,
+                    'booking_count' => $venue->booking_count,
+                    'highlight' => $venue->booking_count == $maxCount ? 'highest' : ($venue->booking_count == $minCount ? 'lowest' : 'medium'),
                 ];
             });
 
@@ -99,22 +98,20 @@ class BookingController extends Controller
     }
 
 
-
     public function categorize_venues()
     {
         try {
             $currentMonth = now()->month;
             $currentYear = now()->year;
 
-            $bookingCounts = Booking::with('venue')
-                ->whereYear('booking_date', $currentYear)
+            $bookingCounts = Booking::whereYear('booking_date', $currentYear)
                 ->whereMonth('booking_date', $currentMonth)
                 ->select('venue_id', DB::raw('COUNT(*) as booking_count'))
                 ->groupBy('venue_id')
                 ->get();
 
             if ($bookingCounts->isEmpty()) {
-                return ErrorResponse::error('No venues found as per the category', 404);
+                return ErrorResponse::error('No venues found as per the category in this month', 404);
             }
 
             $venueDetails = $bookingCounts->map(function ($booking) {
