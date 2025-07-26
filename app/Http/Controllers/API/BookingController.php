@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ReserveRequest;
 use App\Models\Booking;
 use App\Models\Venue;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
+
 use Illuminate\Support\Facades\DB;
 use App\Helpers\BookingHelper;
 use App\Utils\ErrorResponse;
@@ -14,16 +15,8 @@ use App\Utils\SuccessResponse;
 
 class BookingController extends Controller
 {
-    public function reserve(Request $request)
+    public function reserve(ReserveRequest $request)
     {
-        $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'venue_id' => 'required|exists:venues,id',
-            'booking_date' => 'required|date|after_or_equal:today|before_or_equal:' . now()->addMonth()->toDateString(),
-            'start_time' => 'required|date_format:h:i A',
-            'end_time' => 'required|date_format:h:i A|after:start_time',
-        ]);
-
         try {
             $UserId = $request->user_id;
             $venueId = $request->venue_id;
@@ -93,6 +86,7 @@ class BookingController extends Controller
 
             return SuccessResponse::success('Venue details fetched successfully', $venueDetails);
         } catch (\Exception $e) {
+
             return ErrorResponse::error($e->getMessage());
         }
     }
@@ -106,7 +100,15 @@ class BookingController extends Controller
 
             $bookingCounts = Booking::whereYear('booking_date', $currentYear)
                 ->whereMonth('booking_date', $currentMonth)
-                ->select('venue_id', DB::raw('COUNT(*) as booking_count'))
+                ->select(
+                    'venue_id',
+                    DB::raw('COUNT(*) as booking_count'),
+                    DB::raw('Case
+                                    WHEN COUNT(*) > 15 THEN "A"
+                                    WHEN COUNT(*) >= 10 THEN "B"
+                                    WHEN COUNT(*) >= 5 THEN "C"
+                                    ELSE "D"
+                                    END as category'))
                 ->groupBy('venue_id')
                 ->get();
 
@@ -116,17 +118,7 @@ class BookingController extends Controller
 
             $venueDetails = $bookingCounts->map(function ($booking) {
                 $count = $booking->booking_count;
-
-                if ($count > 15) {
-                    $category = 'A';
-                } elseif ($count >= 10) {
-                    $category = 'B';
-                } elseif ($count >= 5) {
-                    $category = 'C';
-                } else {
-                    $category = 'D';
-                }
-
+                $category = $booking->category;
                 return [
                     'venue_id' => $booking->venue_id,
                     'venue_name' => $booking->venue->venue_name ?? 'N/A',
