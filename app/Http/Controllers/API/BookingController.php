@@ -7,9 +7,9 @@ use App\Http\Requests\ReserveRequest;
 use App\Models\Booking;
 use App\Models\Venue;
 use Carbon\Carbon;
-
 use Illuminate\Support\Facades\DB;
 use App\Helpers\BookingHelper;
+use App\Services\BookingServices;
 use App\Utils\ErrorResponse;
 use App\Utils\SuccessResponse;
 
@@ -44,13 +44,7 @@ class BookingController extends Controller
                 return ErrorResponse::error('Time slot overlaps with existing booking', 409);
             }
 
-            $booking = Booking::create([
-                'user_id' => $UserId,
-                'venue_id' => $venueId,
-                'booking_date' => $bookingDate,
-                'start_time' => $request->start_time,
-                'end_time' => $request->end_time,
-            ]);
+            $booking = BookingServices::Book($UserId, $venueId, $bookingDate, $request->start_time, $request->end_time);
 
             return SuccessResponse::success('Booking successful', $booking, 201);
         } catch (\Exception $e) {
@@ -108,7 +102,8 @@ class BookingController extends Controller
                                     WHEN COUNT(*) >= 10 THEN "B"
                                     WHEN COUNT(*) >= 5 THEN "C"
                                     ELSE "D"
-                                    END as category'))
+                                    END as category')
+                )
                 ->groupBy('venue_id')
                 ->get();
 
